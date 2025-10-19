@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Event Home Page</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Event Management</h1>
+        <button id="loginRegisterBtn">Login/Register</button>
+    </header>
+    <div class="role-section">
+        <h2>Select Role</h2>
+        <button onclick="setRole('Organizer')">Organizer</button>
+        <button onclick="setRole('Participant')">Participant</button>
+        <p id="roleDisplay">Role: None</p>
+    </div>
+    <h2>Upcoming Events</h2>
+    <div class="events" id="eventsContainer">
+        <!-- Events cards will appear here -->
+    </div>
+    <!-- Event Details Modal -->
+<div id="eventModal" class="modal">
+  <div class="modal-content" id="modalContent">
+    <span class="close-btn" id="closeModal">&times;</span>
+    <!-- Event details will be loaded here dynamically -->
+  </div>
+</div>
+
+    <script src="main.js"></script>
+</body>
+</html>
