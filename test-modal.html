@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modal Test - Payment System</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .test-container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 600px;
+    }
+
+    h1 {
+      color: #333;
+      margin: 0 0 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin: 0 0 30px;
+      font-size: 0.9rem;
+    }
+
+    .test-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      margin: 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .test-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+    }
+
+    .test-btn:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e1e5e9;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .status-value {
+      color: #666;
+      font-family: 'Courier New', monospace;
+    }
+
+    .check {
+      color: #27ae60;
+      font-weight: bold;
+    }
+
+    .cross {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
+    /* Modal Styles - SAME AS participant.html */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal {
+      position: relative;
+      z-index: 10000;
+      width: 350px;
+      max-width: 90%;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease-out;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal h3 {
+      margin: 0 0 15px;
+      color: #333;
+    }
+
+    .modal .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-ghost {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-ghost:hover {
+      background: #e0e0e0;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      padding: 12px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      border: 2px solid #e1e5e9;
+      font-size: 1rem;
+    }
+
+    input[type="number"]:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+
+    .info-box strong {
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Payment Modal Test</h1>
+    <p class="subtitle">Test the payment modal visibility and functionality</p>
+
+    <div class="info-box">
+      <strong>Purpose:</strong> This page tests if your payment modal appears correctly with the CSS fixes applied.
+    </div>
+
+    <button class="test-btn" onclick="testModal()">
+      🚀 Open Payment Modal
+    </button>
+
+    <button class="test-btn" onclick="runDiagnostics()" style="background: #27ae60;">
+      🔍 Run Diagnostics
+    </button>
+
+    <div class="status" id="statusBox" style="display: none;">
+      <h3 style="margin: 0 0 15px; color: #333;">Diagnostic Results</h3>
+      <div id="diagnosticResults"></div>
+    </div>
+  </div>
+
+  <!-- Payment Modal - SAME STRUCTURE AS participant.html -->
+  <div id="paymentModalBackdrop" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <h3 id="paymentModalTitle">Pay for Tickets</h3>
+      <p id="paymentEventName" style="margin:6px 0 12px; font-weight:600; color: #667eea;">Test Event - Music Concert</p>
+
+      <label style="display:block; margin-bottom:8px;">
+        Number of tickets:
+        <input id="ticketsCount" type="number" min="1" value="1" style="margin-left:8px; width:80px;" />
+      </label>
+
+      <div style="margin-top:8px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <div style="margin-bottom: 5px;">Price per ticket: <strong id="pricePerTicket" style="color: #667eea;">₹ 499.00</strong></div>
+        <div style="margin-bottom: 5px;">Quantity: <strong id="ticketsCountDisplay">1</strong></div>
+        <div style="margin-top:10px; padding-top: 10px; border-top: 2px solid #e1e5e9;">
+          Total amount: <strong id="totalAmount" style="color: #667eea; font-size: 1.2rem;">₹ 499.00</strong>
+        </div>
+      </div>
+
+      <label style="display:block; margin-top:12px;">
+        Payment method:
+        <select id="paymentMethod" style="margin-left:8px;">
+          <option value="UPI">UPI (Google Pay / PhonePe)</option>
+          <option value="Card">Credit / Debit Card</option>
+          <option value="Wallet">Digital Wallet</option>
+          <option value="NetBanking">Net Banking</option>
+        </select>
+      </label>
+
+      <div class="controls">
+        <button id="paymentCancel" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button id="paymentConfirm" class="btn btn-primary" onclick="confirmPayment()">Confirm Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Test modal functionality
+    function testModal() {
+      const backdrop = document.getElementById('paymentModalBackdrop');
+      const modal = backdrop.querySelector('.modal');
+      
+      console.log('Opening modal...');
+      console.log('Backdrop element:', backdrop);
+      console.log('Modal element:', modal);
+      
+      backdrop.style.display = 'flex';
+      
+      // Update summary
+      updateSummary();
+      
+      // Focus on input
+      setTimeout(() => {
+        document.getElementById('ticketsCount').focus();
+      }, 100);
+      
+      console.log('Modal opened successfully!');
+      console.log('Backdrop display:', window.getComputedStyle(backdrop).display);
+      console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+    }
+
+    function closeModal() {
+      const backdrop = document.getElementById('paymentModalBackdrop');
+      backdrop.style.display = 'none';
+      console.log('Modal closed');
+    }
+
+    function confirmPayment() {
+      const tickets = document.getElementById('ticketsCount').value;
+      const method = document.getElementById('paymentMethod').value;
+      const total = document.getElementById('totalAmount').textContent;
+      
+      alert(`✅ Payment Test Successful!\n\nTickets: ${tickets}\nMethod: ${method}\nTotal: ${total}\n\nThis is a test. No actual payment was processed.`);
+      
+      closeModal();
+    }
+
+    function updateSummary() {
+      const ticketsInput = document.getElementById('ticketsCount');
+      const pricePerTicket = 499.00;
+      
+      ticketsInput.addEventListener('input', () => {
+        const quantity = parseInt(ticketsInput.value) || 1;
+        const total = pricePerTicket * quantity;
+        
+        document.getElementById('ticketsCountDisplay').textContent = quantity;
+        document.getElementById('totalAmount').textContent = `₹ ${total.toFixed(2)}`;
+      });
+    }
+
+    function runDiagnostics() {
+      const backdrop = document.getElementById('paymentModalBackdrop');
+      const modal = backdrop.querySelector('.modal');
+      
+      const backdropStyles = window.getComputedStyle(backdrop);
+      const modalStyles = window.getComputedStyle(modal);
+      
+      const results = [
+        {
+          label: 'Backdrop Element',
+          value: backdrop ? '✓ Found' : '✗ Not Found',
+          status: backdrop ? 'check' : 'cross'
+        },
+        {
+          label: 'Modal Element',
+          value: modal ? '✓ Found' : '✗ Not Found',
+          status: modal ? 'check' : 'cross'
+        },
+        {
+          label: 'Backdrop Z-Index',
+          value: backdropStyles.zIndex,
+          status: backdropStyles.zIndex === '9999' ? 'check' : 'cross'
+        },
+        {
+          label: 'Modal Z-Index',
+          value: modalStyles.zIndex,
+          status: modalStyles.zIndex === '10000' ? 'check' : 'cross'
+        },
+        {
+          label: 'Modal Position',
+          value: modalStyles.position,
+          status: modalStyles.position === 'relative' ? 'check' : 'cross'
+        },
+        {
+          label: 'Modal Background',
+          value: modalStyles.backgroundColor,
+          status: modalStyles.backgroundColor.includes('255, 255, 255') ? 'check' : 'cross'
+        },
+        {
+          label: 'Backdrop Display',
+          value: backdropStyles.display,
+          status: 'check'
+        },
+        {
+          label: 'Modal Max-Width',
+          value: modalStyles.maxWidth,
+          status: modalStyles.maxWidth === '90%' ? 'check' : 'cross'
+        }
+      ];
+      
+      const statusBox = document.getElementById('statusBox');
+      const resultsDiv = document.getElementById('diagnosticResults');
+      
+      resultsDiv.innerHTML = results.map(r => `
+        <div class="status-item">
+          <span class="status-label">${r.label}:</span>
+          <span class="status-value ${r.status}">${r.value}</span>
+        </div>
+      `).join('');
+      
+      statusBox.style.display = 'block';
+      
+      // Scroll to results
+      statusBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+      console.log('Diagnostic Results:', results);
+    }
+
+    // Close modal when clicking backdrop
+    document.getElementById('paymentModalBackdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'paymentModalBackdrop') {
+        closeModal();
+      }
+    });
+
+    // Initialize
+    updateSummary();
+    
+    console.log('✅ Test page loaded successfully!');
+    console.log('Click "Open Payment Modal" to test the modal.');
+  </script>
+</body>
+</html>

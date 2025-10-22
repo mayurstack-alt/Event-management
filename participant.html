@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Participant Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Event Cards */
+    .card {
+      border: 1px solid #e1e5e9;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 15px 0;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Real Ticket Styling */
+    .ticket-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 15px;
+      padding: 25px;
+      margin: 20px 0;
+      color: white;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .ticket-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .ticket-card::after {
+      content: '🎫';
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 24px;
+      opacity: 0.7;
+    }
+
+    .ticket-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    }
+
+    .ticket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .ticket-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .ticket-id {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+    }
+
+    .ticket-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .ticket-detail {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 12px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+
+    .ticket-detail-label {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .ticket-detail-value {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .ticket-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ticket-date {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .ticket-quantity {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal {
+      position: relative !important;
+      z-index: 10000 !important;
+      width: 350px;
+      max-width: 90%;
+      background: white !important;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease-out;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal h3 {
+      margin: 0 0 15px;
+      color: #333;
+    }
+
+    .modal .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-ghost {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-ghost:hover {
+      background: #e0e0e0;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      border: 2px solid #e1e5e9;
+      font-size: 1rem;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .ticket-details {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .ticket-card {
+        padding: 20px;
+      }
+
+      .modal {
+        width: 90%;
+        margin: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Participant Dashboard</h1>
+    <div>
+      <span id="userInfo"></span>
+      <button id="logoutBtn">Logout</button>
+      <button onclick="window.location.href='index.html'">Back to Home</button>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Available Events</h2>
+      <div id="eventsContainer"></div>
+    </section>
+
+    <section>
+      <h2>My Event Tickets</h2>
+      <div id="myTicketsContainer"></div>
+    </section>
+  </main>
+
+  <!-- Payment Modal -->
+  <div id="paymentModalBackdrop" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+      <h3 id="paymentModalTitle">Pay for Tickets</h3>
+      <p id="paymentEventName" style="margin:6px 0 12px; font-weight:600;"></p>
+
+      <label style="display:block; margin-bottom:8px;">
+        Number of tickets:
+        <input id="ticketsCount" type="number" min="1" value="1" style="margin-left:8px; width:80px;" />
+      </label>
+
+      <div style="margin-top:8px;">
+        <div>Price per ticket: <strong id="pricePerTicket">₹ 0.00</strong></div>
+        <div>Quantity: <strong id="ticketsCountDisplay">1</strong></div>
+        <div style="margin-top:6px;">Total amount: <strong id="totalAmount">₹ 0.00</strong></div>
+      </div>
+
+      <label style="display:block; margin-top:12px;">
+        Payment method:
+        <select id="paymentMethod" style="margin-left:8px;">
+          <option value="UPI">UPI</option>
+          <option value="Card">Card</option>
+          <option value="Wallet">Wallet</option>
+          <option value="NetBanking">Net Banking</option>
+        </select>
+      </label>
+
+      <div class="controls">
+        <button id="paymentCancel" class="btn btn-ghost">Cancel</button>
+        <button id="paymentConfirm" class="btn btn-primary">Confirm Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="participant.js"></script>
+
+  <!-- Debug helper: show only when ?debug=1 in URL -->
+  <button id="debugOpenPayment" style="position:fixed;right:14px;bottom:14px;z-index:10001;padding:10px 14px;border-radius:8px;background:#ffb86b;border:none;display:none;cursor:pointer;">Open Payment (debug)</button>
+  <script>
+    try {
+      const dbg = new URLSearchParams(window.location.search).get('debug');
+      if (dbg === '1') {
+        const btn = document.getElementById('debugOpenPayment');
+        btn.style.display = 'block';
+        btn.addEventListener('click', () => {
+          // open a test payment modal with sample data
+          if (typeof openPaymentForEvent === 'function') {
+            openPaymentForEvent(9999, 'Test Event (debug)', 99.99);
+          } else {
+            alert('Payment function not available — check console for errors.');
+            console.log('openPaymentForEvent is', typeof openPaymentForEvent);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Debug helper failed', e);
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,673 @@
+# Payment System - Complete Flow Diagram
+
+## 🎯 Overview
+
+This diagram shows the complete flow from event creation to payment completion.
+
+═══════════════════════════════════════════════════════════════════════════════
+                        COMPLETE PAYMENT SYSTEM FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 1: Organizer Creates Event with Price
+
+┌─────────────┐
+│  ORGANIZER  │
+└──────┬──────┘
+       │
+       │ 1. Opens organizer dashboard
+       │
+       ▼
+┌─────────────────────────────────────────┐
+│     Organizer Dashboard (HTML)          │
+│                                         │
+│  Add New Event Form:                   │
+│  ┌───────────────────────────────────┐ │
+│  │ Title: [Music Concert        ]    │ │
+│  │ Date:  [2025-12-25          ]    │ │
+│  │ Venue: [Mumbai              ]    │ │
+│  │ Description: [Live music... ]    │ │
+│  │ ✨ Ticket Price (₹): [499.00]    │ │ ← NEW FIELD
+│  │                                   │ │
+│  │        [Add Event]                │ │
+│  └───────────────────────────────────┘ │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 2. Submits form with price
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   organizer.js (Frontend)               │
+│                                         │
+│   const price = document                │
+│     .getElementById('price').value;     │
+│                                         │
+│   // Validate                           │
+│   if (parseFloat(price) < 0) {         │
+│     alert('Price cannot be negative'); │
+│     return;                             │
+│   }                                     │
+│                                         │
+│   // Send to backend                   │
+│   fetch('POST /api/events', {          │
+│     body: JSON.stringify({             │
+│       title, date, venue,              │
+│       description,                      │
+│       price: parseFloat(price)         │
+│     })                                  │
+│   })                                    │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 3. HTTP POST Request
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Backend: routes/events.js             │
+│                                         │
+│   router.post('/', async (req, res) => {│
+│     const { title, date, venue,        │
+│              description, price } =     │
+│       req.body;                         │
+│                                         │
+│     const eventPrice =                  │
+│       parseFloat(price) || 0.00;       │
+│                                         │
+│     await pool.query(                   │
+│       `INSERT INTO events              │
+│        (title, date, venue,            │
+│         description, price,            │
+│         is_active)                     │
+│        VALUES ($1,$2,$3,$4,$5,true)`,  │
+│       [title, date, venue,             │
+│        description, eventPrice]        │
+│     );                                  │
+│   });                                   │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 4. SQL INSERT
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   PostgreSQL Database                   │
+│                                         │
+│   events table:                         │
+│   ┌──────────────────────────────────┐ │
+│   │ event_id | title    | price     │ │
+│   ├──────────┼──────────┼───────────┤ │
+│   │    1     | Music    | 499.00    │ │
+│   │          | Concert  |           │ │
+│   └──────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 2: Participant Views Events
+
+┌─────────────┐
+│ PARTICIPANT │
+└──────┬──────┘
+       │
+       │ 1. Opens participant dashboard
+       │
+       ▼
+┌─────────────────────────────────────────┐
+│   participant-payment.js (Frontend)     │
+│                                         │
+│   async function loadEventsAndBookings()│
+│   {                                     │
+│     const res = await fetch(            │
+│       'GET /api/events'                 │
+│     );                                  │
+│     const data = await res.json();      │
+│                                         │
+│     // Display events with prices       │
+│     data.data.forEach(e => {            │
+│       const priceDisplay =              │
+│         e.price > 0                     │
+│           ? `₹ ${e.price.toFixed(2)}`  │
+│           : 'Free';                     │
+│       // Create card with price badge   │
+│     });                                 │
+│   }                                     │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 2. HTTP GET Request
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Backend: routes/events.js             │
+│                                         │
+│   router.get('/', async (req, res) => {│
+│     const result = await pool.query(    │
+│       `SELECT event_id, title, date,   │
+│               venue, description,       │
+│               price, is_active          │
+│        FROM events                      │
+│        WHERE is_active = true          │
+│          AND date >= CURRENT_DATE      │
+│        ORDER BY date ASC`              │
+│     );                                  │
+│     res.json({                          │
+│       success: true,                    │
+│       data: result.rows                 │
+│     });                                 │
+│   });                                   │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 3. Returns events with prices
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Participant Dashboard (HTML)          │
+│                                         │
+│   Available Events:                     │
+│   ┌───────────────────────────────────┐ │
+│   │ Music Concert                     │ │
+│   │ 📅 Date: Dec 25, 2025            │ │
+│   │ 📍 Venue: Mumbai                 │ │
+│   │ ┌─────────────┐                  │ │
+│   │ │ ₹ 499.00    │ ← Price Badge    │ │
+│   │ └─────────────┘                  │ │
+│   │ [Book Tickets] ← Click here      │ │
+│   └───────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 3: Payment Modal Opens
+
+┌─────────────┐
+│ PARTICIPANT │
+└──────┬──────┘
+       │
+       │ 1. Clicks "Book Tickets"
+       │
+       ▼
+┌─────────────────────────────────────────┐
+│   participant-payment.js                │
+│                                         │
+│   window.openPaymentForEvent =         │
+│     function(eventId, title, price) {   │
+│       openPaymentModal({                │
+│         event_id: eventId,              │
+│         title: title,                   │
+│         price: price                    │
+│       });                               │
+│     };                                  │
+│                                         │
+│   function openPaymentModal(event) {    │
+│     currentEvent = event;               │
+│     paymentEventName.textContent =      │
+│       event.title;                      │
+│     ticketsCountInput.value = "1";      │
+│     updatePaymentSummary();             │
+│     paymentModalBackdrop.style          │
+│       .display = "flex";                │
+│   }                                     │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 2. Modal displays
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Payment Modal (HTML)                  │
+│                                         │
+│   ┌───────────────────────────────────┐ │
+│   │ Complete Payment            [×]   │ │
+│   ├───────────────────────────────────┤ │
+│   │ Music Concert                     │ │
+│   │                                   │ │
+│   │ Number of Tickets:                │ │
+│   │ [2] ← User changes to 2           │ │
+│   │                                   │ │
+│   │ Payment Method:                   │ │
+│   │ [UPI ▼] ← User selects UPI        │ │
+│   │                                   │ │
+│   │ ┌───────────────────────────────┐ │ │
+│   │ │ Price per ticket: ₹ 499.00    │ │ │
+│   │ │ Number of tickets: 2          │ │ │
+│   │ │ ─────────────────────────────  │ │ │
+│   │ │ Total Amount: ₹ 998.00        │ │ │ ← Auto-calculated
+│   │ └───────────────────────────────┘ │ │
+│   │                                   │ │
+│   │  [Cancel]  [Confirm Payment]      │ │
+│   └───────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 4: Real-time Price Calculation
+
+┌─────────────────────────────────────────┐
+│   participant-payment.js                │
+│                                         │
+│   ticketsCountInput.addEventListener(   │
+│     "input",                            │
+│     updatePaymentSummary                │
+│   );                                    │
+│                                         │
+│   function updatePaymentSummary() {     │
+│     const ticketsCount =                │
+│       parseInt(                         │
+│         ticketsCountInput.value         │
+│       ) || 1;                           │
+│                                         │
+│     const pricePerTicket =              │
+│       parseFloat(                       │
+│         currentEvent.price              │
+│       ) || 0;                           │
+│                                         │
+│     const totalAmount =                 │
+│       pricePerTicket * ticketsCount;    │
+│                                         │
+│     pricePerTicketDisplay.textContent = │
+│       `₹ ${pricePerTicket.toFixed(2)}`; │
+│                                         │
+│     ticketsCountDisplay.textContent =   │
+│       ticketsCount;                     │
+│                                         │
+│     totalAmountDisplay.textContent =    │
+│       `₹ ${totalAmount.toFixed(2)}`;    │
+│   }                                     │
+└─────────────────────────────────────────┘
+
+User changes tickets from 1 → 2:
+  Price per ticket: ₹ 499.00 (stays same)
+  Number of tickets: 1 → 2
+  Total Amount: ₹ 499.00 → ₹ 998.00 ✨
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 5: Payment Confirmation
+
+┌─────────────┐
+│ PARTICIPANT │
+└──────┬──────┘
+       │
+       │ 1. Clicks "Confirm Payment"
+       │
+       ▼
+┌─────────────────────────────────────────┐
+│   participant-payment.js                │
+│                                         │
+│   paymentConfirmBtn.addEventListener(   │
+│     "click", async () => {              │
+│       // Validate                       │
+│       if (ticketsCount < 1) {           │
+│         alert("Minimum 1 ticket");      │
+│         return;                         │
+│       }                                 │
+│                                         │
+│       // Confirm                        │
+│       if (!confirm(                     │
+│         `Pay ₹${totalAmount}?`          │
+│       )) return;                        │
+│                                         │
+│       // Step 1: Create booking         │
+│       const bookingRes = await fetch(   │
+│         'POST /api/bookings', {         │
+│           body: JSON.stringify({        │
+│             event_id: currentEvent      │
+│               .event_id,                │
+│             quantity: ticketsCount      │
+│           })                            │
+│         }                               │
+│       );                                │
+│                                         │
+│       const bookingData =               │
+│         await bookingRes.json();        │
+│                                         │
+│       // Step 2: Process payment        │
+│       const paymentRes = await fetch(   │
+│         'POST /api/payments', {         │
+│           body: JSON.stringify({        │
+│             booking_id: bookingData     │
+│               .booking.booking_id,      │
+│             participant_name: name,     │
+│             event_id: currentEvent      │
+│               .event_id,                │
+│             event_title: currentEvent   │
+│               .title,                   │
+│             tickets_count:              │
+│               ticketsCount,             │
+│             total_amount:               │
+│               totalAmount,              │
+│             payment_method:             │
+│               paymentMethod             │
+│           })                            │
+│         }                               │
+│       );                                │
+│     }                                   │
+│   );                                    │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 2. HTTP POST (Booking)
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Backend: routes/booking.js            │
+│                                         │
+│   router.post('/', async (req, res) => {│
+│     const { event_id, quantity } =      │
+│       req.body;                         │
+│     const userId = req.user.user_id;    │
+│                                         │
+│     // Validate event                   │
+│     const eventCheck = await            │
+│       pool.query(                       │
+│         `SELECT * FROM events          │
+│          WHERE event_id = $1`,         │
+│         [event_id]                      │
+│       );                                │
+│                                         │
+│     // Check is_active and date         │
+│     if (!event.is_active ||             │
+│         event.date < today) {           │
+│       return res.status(422).json({     │
+│         message: "Cannot book"          │
+│       });                               │
+│     }                                   │
+│                                         │
+│     // Insert booking                   │
+│     const result = await pool.query(    │
+│       `INSERT INTO bookings            │
+│        (user_id, event_id, quantity)   │
+│        VALUES ($1, $2, $3)             │
+│        RETURNING *`,                    │
+│       [userId, event_id, quantity]      │
+│     );                                  │
+│                                         │
+│     res.json({                          │
+│       success: true,                    │
+│       booking: result.rows[0]           │
+│     });                                 │
+│   });                                   │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 3. Booking created
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   PostgreSQL Database                   │
+│                                         │
+│   bookings table:                       │
+│   ┌──────────────────────────────────┐ │
+│   │ booking_id | user_id | quantity │ │
+│   ├────────────┼─────────┼──────────┤ │
+│   │     1      |    2    |    2     │ │
+│   └──────────────────────────────────┘ │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 4. HTTP POST (Payment)
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Backend: routes/payments.js           │
+│                                         │
+│   router.post('/', async (req, res) => {│
+│     const {                             │
+│       booking_id,                       │
+│       participant_name,                 │
+│       event_id,                         │
+│       event_title,                      │
+│       tickets_count,                    │
+│       total_amount,                     │
+│       payment_method                    │
+│     } = req.body;                       │
+│                                         │
+│     // Validate price                   │
+│     const event = await pool.query(     │
+│       `SELECT price FROM events        │
+│        WHERE event_id = $1`,           │
+│       [event_id]                        │
+│     );                                  │
+│                                         │
+│     const expectedAmount =              │
+│       event.price * tickets_count;      │
+│                                         │
+│     if (Math.abs(expectedAmount -       │
+│         total_amount) > 0.01) {         │
+│       return res.status(400).json({     │
+│         message: "Price mismatch"       │
+│       });                               │
+│     }                                   │
+│                                         │
+│     // Generate transaction ID          │
+│     const transaction_id =              │
+│       `TXN${Date.now()}${Math.floor(   │
+│         Math.random() * 1000           │
+│       )}`;                              │
+│                                         │
+│     // Insert payment                   │
+│     const result = await pool.query(    │
+│       `INSERT INTO payments            │
+│        (booking_id, participant_name,  │
+│         event_id, event_title,         │
+│         tickets_count, total_amount,   │
+│         payment_method,                │
+│         payment_status,                │
+│         transaction_id)                │
+│        VALUES ($1,$2,$3,$4,$5,$6,      │
+│                $7,'Paid',$8)           │
+│        RETURNING *`,                    │
+│       [booking_id, participant_name,    │
+│        event_id, event_title,          │
+│        tickets_count, total_amount,    │
+│        payment_method, transaction_id] │
+│     );                                  │
+│                                         │
+│     res.status(201).json({              │
+│       success: true,                    │
+│       message: "Payment successful!",   │
+│       payment: result.rows[0]           │
+│     });                                 │
+│   });                                   │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 5. Payment record created
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   PostgreSQL Database                   │
+│                                         │
+│   payments table:                       │
+│   ┌──────────────────────────────────┐ │
+│   │ payment_id | 1                   │ │
+│   │ booking_id | 1                   │ │
+│   │ participant_name | John Doe      │ │
+│   │ event_id | 1                     │ │
+│   │ event_title | Music Concert      │ │
+│   │ tickets_count | 2                │ │
+│   │ total_amount | 998.00            │ │
+│   │ payment_method | UPI             │ │
+│   │ payment_status | Paid            │ │
+│   │ transaction_id | TXN1729445678123│ │
+│   │ payment_date | 2025-10-20...     │ │
+│   └──────────────────────────────────┘ │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 6. Success response
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   participant-payment.js                │
+│                                         │
+│   // Success!                           │
+│   closePaymentModal();                  │
+│                                         │
+│   alert(                                │
+│     `✅ Payment Successful!\n\n` +      │
+│     `Transaction ID: ${paymentData     │
+│       .payment.transaction_id}\n` +     │
+│     `Event: ${currentEvent.title}\n` +  │
+│     `Tickets: ${ticketsCount}\n` +      │
+│     `Amount: ₹${totalAmount}\n` +       │
+│     `Method: ${paymentMethod}\n\n` +    │
+│     `Your booking is confirmed!`        │
+│   );                                    │
+│                                         │
+│   // Reload data                        │
+│   loadEventsAndBookings();              │
+│   loadMyTickets();                      │
+└────────────────┬────────────────────────┘
+                 │
+                 │ 7. Success alert shown
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Browser Alert                         │
+│                                         │
+│   ✅ Payment Successful!                │
+│                                         │
+│   Transaction ID: TXN1729445678123      │
+│   Event: Music Concert                  │
+│   Tickets: 2                            │
+│   Amount Paid: ₹ 998.00                 │
+│   Payment Method: UPI                   │
+│                                         │
+│   Your booking is confirmed!            │
+│                                         │
+│              [OK]                       │
+└─────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Part 6: Display Tickets
+
+┌─────────────────────────────────────────┐
+│   participant-payment.js                │
+│                                         │
+│   async function loadMyTickets() {      │
+│     const res = await fetch(            │
+│       `GET /api/payments/user/${userId}`│
+│     );                                  │
+│     const data = await res.json();      │
+│                                         │
+│     data.data.forEach((payment) => {    │
+│       // Create beautiful ticket card   │
+│       const ticket =                    │
+│         document.createElement("div");  │
+│       ticket.className = "ticket-card"; │
+│                                         │
+│       ticket.innerHTML = `              │
+│         <div class="ticket-header">     │
+│           <h3>${payment.event_title}</h3>│
+│           <div class="ticket-id">       │
+│             ${payment.transaction_id}   │
+│           </div>                        │
+│         </div>                          │
+│         ... (all details)               │
+│       `;                                │
+│     });                                 │
+│   }                                     │
+└────────────────┬────────────────────────┘
+                 │
+                 │ HTTP GET Request
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   Backend: routes/payments.js           │
+│                                         │
+│   router.get('/user/:user_id',          │
+│     async (req, res) => {               │
+│       const payments = await            │
+│         pool.query(`                    │
+│           SELECT p.*, e.date,           │
+│                  e.venue                │
+│           FROM payments p               │
+│           LEFT JOIN bookings b          │
+│             ON p.booking_id =           │
+│                b.booking_id             │
+│           LEFT JOIN events e            │
+│             ON p.event_id =             │
+│                e.event_id               │
+│           WHERE b.user_id = $1          │
+│           ORDER BY p.payment_date DESC  │
+│         `, [user_id]);                  │
+│                                         │
+│       res.json({                        │
+│         success: true,                  │
+│         data: payments.rows             │
+│       });                               │
+│     }                                   │
+│   );                                    │
+└────────────────┬────────────────────────┘
+                 │
+                 │ Returns payment data
+                 │
+                 ▼
+┌─────────────────────────────────────────┐
+│   My Event Tickets (HTML)               │
+│                                         │
+│   ┌───────────────────────────────────┐ │
+│   │ Music Concert    TXN1729445678123 │ │ ← Gradient background
+│   ├───────────────────────────────────┤ │
+│   │ Event Date: Dec 25, 2025          │ │
+│   │ Venue: Mumbai                     │ │
+│   │ Participant: John Doe             │ │
+│   │ Payment: UPI                      │ │
+│   │ Tickets: 🎫 2 tickets             │ │
+│   │ Status: ✅ Paid                   │ │
+│   ├───────────────────────────────────┤ │
+│   │ Booked on Oct 20, 2025 at 3:45 PM │ │
+│   │                      ₹ 998.00     │ │
+│   └───────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Summary of Complete Flow
+
+1. ✅ Organizer creates event with price (₹ 499.00)
+2. ✅ Event stored in database with price
+3. ✅ Participant views events with price badges
+4. ✅ Participant clicks "Book Tickets"
+5. ✅ Payment modal opens
+6. ✅ Participant selects quantity (2 tickets)
+7. ✅ Total auto-calculates (₹ 998.00)
+8. ✅ Participant selects payment method (UPI)
+9. ✅ Participant confirms payment
+10. ✅ Booking created in database
+11. ✅ Payment processed and recorded
+12. ✅ Transaction ID generated (TXN1729445678123)
+13. ✅ Success message displayed
+14. ✅ Beautiful ticket card shown with all details
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Database State After Complete Flow
+
+events table:
+┌──────────┬──────────────┬────────┬────────┬────────────┬───────┬───────────┐
+│ event_id │ title        │ date   │ venue  │ description│ price │ is_active │
+├──────────┼──────────────┼────────┼────────┼────────────┼───────┼───────────┤
+│    1     │ Music Concert│2025-12 │ Mumbai │ Live music │499.00 │   true    │
+└──────────┴──────────────┴────────┴────────┴────────────┴───────┴───────────┘
+
+bookings table:
+┌────────────┬─────────┬──────────┬──────────┬────────────┐
+│ booking_id │ user_id │ event_id │ quantity │ payment_id │
+├────────────┼─────────┼──────────┼──────────┼────────────┤
+│     1      │    2    │    1     │    2     │     1      │
+└────────────┴─────────┴──────────┴──────────┴────────────┘
+
+payments table:
+┌────────────┬────────────┬──────────────────┬──────────┬──────────────┬───────────────┬──────────────┬────────────────┬────────────────┬───────────────────┬──────────────┐
+│ payment_id │ booking_id │ participant_name │ event_id │ event_title  │ tickets_count │ total_amount │ payment_method │ payment_status │ transaction_id    │ payment_date │
+├────────────┼────────────┼──────────────────┼──────────┼──────────────┼───────────────┼──────────────┼────────────────┼────────────────┼───────────────────┼──────────────┤
+│     1      │     1      │ John Doe         │    1     │ Music Concert│       2       │   998.00     │      UPI       │      Paid      │ TXN1729445678123  │ 2025-10-20...│
+└────────────┴────────────┴──────────────────┴──────────┴──────────────┴───────────────┴──────────────┴────────────────┴────────────────┴───────────────────┴──────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+## Key Features Highlighted
+
+✨ Price Input & Validation
+✨ Real-time Price Calculation
+✨ Transaction ID Generation
+✨ Complete Payment Record
+✨ Beautiful Ticket Display
+✨ Offline/Local Simulation
+✨ Full Validation & Security
+✨ Professional UI/UX
+
+═══════════════════════════════════════════════════════════════════════════════

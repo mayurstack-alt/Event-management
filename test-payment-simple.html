@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Payment Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .test-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    
+    .test-btn:hover {
+      background: #5568d3;
+    }
+    
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    
+    .modal {
+      position: relative !important;
+      z-index: 10000 !important;
+      width: 400px;
+      background: white !important;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal h3 {
+      margin: 0 0 20px;
+      color: #333;
+    }
+    
+    .modal input, .modal select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    
+    .modal button {
+      padding: 10px 20px;
+      margin: 10px 5px 0 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-ghost {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    
+    .console-output {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Simple Payment Modal Test</h1>
+  
+  <div class="info">
+    <strong>Purpose:</strong> Test if the payment modal works with hardcoded event data.
+  </div>
+  
+  <button class="test-btn" onclick="testPayment()">
+    🚀 Test Payment Modal
+  </button>
+  
+  <button class="test-btn" onclick="clearConsole()" style="background: #e74c3c;">
+    🗑️ Clear Console
+  </button>
+  
+  <div class="console-output" id="consoleOutput">
+    Console output will appear here...
+  </div>
+  
+  <!-- Payment Modal -->
+  <div id="paymentModalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3>Complete Payment</h3>
+      <p><strong>Event:</strong> <span id="eventName">-</span></p>
+      <p><strong>Price per ticket:</strong> ₹<span id="pricePerTicket">0.00</span></p>
+      
+      <label>Number of tickets:</label>
+      <input type="number" id="ticketsCount" min="1" value="1" />
+      
+      <label>Payment method:</label>
+      <select id="paymentMethod">
+        <option value="UPI">UPI</option>
+        <option value="Card">Card</option>
+        <option value="Wallet">Wallet</option>
+      </select>
+      
+      <p><strong>Total: ₹<span id="totalAmount">0.00</span></strong></p>
+      
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmPayment()">Confirm Payment</button>
+    </div>
+  </div>
+  
+  <script>
+    let currentEvent = null;
+    
+    function log(message, data = null) {
+      const output = document.getElementById('consoleOutput');
+      const timestamp = new Date().toLocaleTimeString();
+      let logMessage = `[${timestamp}] ${message}`;
+      if (data) {
+        logMessage += '\n' + JSON.stringify(data, null, 2);
+      }
+      output.innerHTML += logMessage + '\n\n';
+      output.scrollTop = output.scrollHeight;
+      console.log(message, data);
+    }
+    
+    function clearConsole() {
+      document.getElementById('consoleOutput').innerHTML = 'Console cleared...\n\n';
+    }
+    
+    function testPayment() {
+      log('🚀 Test button clicked');
+      
+      // Create test event data
+      const testEvent = {
+        event_id: 999,
+        title: "Test Music Concert",
+        venue: "Test Venue Mumbai",
+        price: 499.00
+      };
+      
+      log('📦 Created test event:', testEvent);
+      
+      openPaymentModal(testEvent);
+    }
+    
+    function openPaymentModal(event) {
+      log('🔓 openPaymentModal called with:', event);
+      
+      if (!event) {
+        log('❌ ERROR: event is null or undefined');
+        alert('Error: Event data is missing');
+        return;
+      }
+      
+      if (!event.title) {
+        log('❌ ERROR: event.title is missing', event);
+        alert('Error: Event title is missing');
+        return;
+      }
+      
+      log('✅ Event validation passed');
+      
+      currentEvent = event;
+      log('📝 Set currentEvent:', currentEvent);
+      
+      document.getElementById('eventName').textContent = event.title;
+      document.getElementById('pricePerTicket').textContent = event.price.toFixed(2);
+      document.getElementById('ticketsCount').value = 1;
+      updateTotal();
+      
+      document.getElementById('paymentModalBackdrop').style.display = 'flex';
+      log('✅ Modal opened successfully');
+    }
+    
+    function closeModal() {
+      log('🔒 Closing modal');
+      document.getElementById('paymentModalBackdrop').style.display = 'none';
+      currentEvent = null;
+      log('📝 Cleared currentEvent');
+    }
+    
+    function updateTotal() {
+      const tickets = parseInt(document.getElementById('ticketsCount').value) || 1;
+      const price = currentEvent ? currentEvent.price : 0;
+      const total = price * tickets;
+      document.getElementById('totalAmount').textContent = total.toFixed(2);
+    }
+    
+    function confirmPayment() {
+      log('💳 Confirm payment clicked');
+      log('📝 Current event:', currentEvent);
+      
+      if (!currentEvent) {
+        log('❌ ERROR: currentEvent is null');
+        alert('Error: Event data is missing. Please close and try again.');
+        return;
+      }
+      
+      if (!currentEvent.title) {
+        log('❌ ERROR: currentEvent.title is missing', currentEvent);
+        alert('Error: Event title is missing');
+        return;
+      }
+      
+      log('✅ Validation passed');
+      
+      const tickets = parseInt(document.getElementById('ticketsCount').value);
+      const method = document.getElementById('paymentMethod').value;
+      const total = currentEvent.price * tickets;
+      
+      const paymentData = {
+        event_id: currentEvent.event_id,
+        event_title: currentEvent.title,
+        tickets_count: tickets,
+        total_amount: total,
+        payment_method: method
+      };
+      
+      log('💰 Payment data:', paymentData);
+      
+      alert(`✅ Payment Successful!\n\nEvent: ${currentEvent.title}\nTickets: ${tickets}\nTotal: ₹${total.toFixed(2)}\nMethod: ${method}\n\nThis is a test - no actual payment was processed.`);
+      
+      log('✅ Payment completed successfully');
+      closeModal();
+    }
+    
+    // Update total when tickets change
+    document.getElementById('ticketsCount').addEventListener('input', updateTotal);
+    
+    log('✅ Page loaded successfully');
+    log('💡 Click "Test Payment Modal" to start');
+  </script>
+</body>
+</html>

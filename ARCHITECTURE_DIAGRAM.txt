@@ -1,0 +1,419 @@
+# Event Management System - Architecture Diagram
+
+## System Overview
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         EVENT MANAGEMENT SYSTEM                          │
+│                     (HTML/CSS/JS + Node.js + PostgreSQL)                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+## Component Architecture
+
+┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+│                  │         │                  │         │                  │
+│    FRONTEND      │◄───────►│     BACKEND      │◄───────►│    DATABASE      │
+│  (HTML/CSS/JS)   │  HTTP   │  (Node.js +      │   SQL   │   (PostgreSQL)   │
+│                  │  REST   │   Express)       │         │                  │
+│                  │         │                  │         │                  │
+└──────────────────┘         └──────────────────┘         └──────────────────┘
+        │                            │                             │
+        │                            │                             │
+        ▼                            ▼                             ▼
+┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+│ • index.html     │         │ • server.js      │         │ • events table   │
+│ • main.js        │         │ • routes/        │         │   - price ✨     │
+│ • style.css      │         │   - events.js    │         │   - is_active ✨ │
+│                  │         │   - booking.js   │         │   - archived_at ✨│
+│ Price Badge ✨   │         │   - auth.js      │         │ • users table    │
+│ Date Sorting ✨  │         │ • cron.js ✨     │         │ • bookings table │
+│ Past Filter ✨   │         │ • db.js          │         │                  │
+└──────────────────┘         └──────────────────┘         └──────────────────┘
+
+✨ = New/Modified for this feature set
+
+## Data Flow - GET Events
+
+┌─────────┐                                                    ┌──────────┐
+│ Browser │                                                    │ Database │
+└────┬────┘                                                    └────┬─────┘
+     │                                                              │
+     │ 1. GET /api/events                                          │
+     ├──────────────────────────────►┌──────────┐                 │
+     │                                │ Express  │                 │
+     │                                │ Router   │                 │
+     │                                └────┬─────┘                 │
+     │                                     │                       │
+     │                                     │ 2. SQL Query          │
+     │                                     ├──────────────────────►│
+     │                                     │ WHERE is_active=true  │
+     │                                     │ AND date>=CURRENT_DATE│
+     │                                     │ ORDER BY date ASC     │
+     │                                     │                       │
+     │                                     │ 3. Results            │
+     │                                     │◄──────────────────────┤
+     │                                     │ [{event1}, {event2}]  │
+     │                                     │                       │
+     │ 4. JSON Response                    │                       │
+     │◄────────────────────────────────────┤                       │
+     │ {success:true, data:[...]}          │                       │
+     │                                                              │
+     │ 5. Render Cards with Prices ✨                              │
+     │    Sort by Date (fallback) ✨                               │
+     │    Hide Past Events ✨                                      │
+     └─────────────────────────────────────────────────────────────┘
+
+## Data Flow - Create Booking
+
+┌─────────┐                                                    ┌──────────┐
+│ Browser │                                                    │ Database │
+└────┬────┘                                                    └────┬─────┘
+     │                                                              │
+     │ 1. POST /api/bookings                                       │
+     │    {event_id: 1, quantity: 2}                               │
+     ├──────────────────────────────►┌──────────┐                 │
+     │                                │ Express  │                 │
+     │                                │ Router   │                 │
+     │                                └────┬─────┘                 │
+     │                                     │                       │
+     │                                     │ 2. Verify JWT         │
+     │                                     │    Check Role         │
+     │                                     │                       │
+     │                                     │ 3. Get Event          │
+     │                                     ├──────────────────────►│
+     │                                     │ SELECT * FROM events  │
+     │                                     │ WHERE event_id = 1    │
+     │                                     │                       │
+     │                                     │ 4. Event Data         │
+     │                                     │◄──────────────────────┤
+     │                                     │                       │
+     │                                     │ 5. Validate ✨        │
+     │                                     │    • is_active?       │
+     │                                     │    • date >= today?   │
+     │                                     │                       │
+     │                                     │ 6. Insert Booking     │
+     │                                     ├──────────────────────►│
+     │                                     │ INSERT INTO bookings  │
+     │                                     │                       │
+     │ 7. Success Response                 │                       │
+     │◄────────────────────────────────────┤                       │
+     │ {success:true, booking:{...}}       │                       │
+     └─────────────────────────────────────────────────────────────┘
+
+## Cron Job Flow - Automatic Archival
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          DAILY AT 00:05                                  │
+└──────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                            ┌───────────────┐
+                            │   cron.js     │
+                            │  (node-cron)  │
+                            └───────┬───────┘
+                                    │
+                                    │ Trigger scheduled task
+                                    ▼
+                            ┌───────────────┐
+                            │  SQL UPDATE   │
+                            │               │
+                            │ UPDATE events │
+                            │ SET           │
+                            │  is_active=   │
+                            │    false,     │
+                            │  archived_at= │
+                            │    NOW()      │
+                            │ WHERE         │
+                            │  date <       │
+                            │  CURRENT_DATE │
+                            └───────┬───────┘
+                                    │
+                                    ▼
+                            ┌───────────────┐
+                            │  PostgreSQL   │
+                            │               │
+                            │ Past events   │
+                            │ marked        │
+                            │ inactive      │
+                            └───────┬───────┘
+                                    │
+                                    ▼
+                            ┌───────────────┐
+                            │ Console Log   │
+                            │ "Archived 3   │
+                            │  events"      │
+                            └───────────────┘
+
+## Database Schema - Events Table
+
+┌─────────────────────────────────────────────────────────────┐
+│                        EVENTS TABLE                         │
+├──────────────┬──────────────────┬──────────────────────────┤
+│ Column       │ Type             │ Description              │
+├──────────────┼──────────────────┼──────────────────────────┤
+│ event_id     │ SERIAL PK        │ Unique identifier        │
+│ title        │ VARCHAR(150)     │ Event name               │
+│ date         │ DATE             │ Event date               │
+│ venue        │ VARCHAR(150)     │ Event location           │
+│ description  │ TEXT             │ Event details            │
+│ price        │ NUMERIC(10,2) ✨ │ Ticket price (NEW)       │
+│ is_active    │ BOOLEAN ✨       │ Active status (NEW)      │
+│ archived_at  │ TIMESTAMP ✨     │ Archive timestamp (NEW)  │
+│ created_at   │ TIMESTAMP        │ Creation timestamp       │
+└──────────────┴──────────────────┴──────────────────────────┘
+
+## Request/Response Flow - Complete Booking Journey
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         USER BOOKING JOURNEY                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+1. User visits homepage
+   └─► GET /api/events
+       └─► Returns active future events with prices ✨
+           └─► Frontend displays sorted cards with price badges ✨
+
+2. User clicks "View Details"
+   └─► Modal shows event details including price ✨
+       └─► If past event: shows warning + disabled button ✨
+
+3. User clicks "Book Event"
+   └─► Checks if logged in
+       └─► If not: redirects to login
+       └─► If yes: proceeds to booking
+
+4. User submits booking
+   └─► POST /api/bookings
+       └─► Backend validates:
+           ├─► Event exists?
+           ├─► Event is_active? ✨
+           ├─► Event date >= today? ✨
+           └─► User is Participant?
+       └─► If valid: creates booking
+       └─► If invalid: returns 422 error ✨
+
+5. User sees confirmation
+   └─► Booking stored in database
+       └─► User can view in "My Bookings"
+
+## Authentication Flow
+
+┌─────────┐                    ┌──────────┐                  ┌──────────┐
+│ Client  │                    │  Server  │                  │ Database │
+└────┬────┘                    └────┬─────┘                  └────┬─────┘
+     │                              │                             │
+     │ 1. POST /api/auth/login      │                             │
+     │    {email, password, role}   │                             │
+     ├─────────────────────────────►│                             │
+     │                              │ 2. Query user               │
+     │                              ├────────────────────────────►│
+     │                              │                             │
+     │                              │ 3. User data                │
+     │                              │◄────────────────────────────┤
+     │                              │                             │
+     │                              │ 4. Verify password (bcrypt) │
+     │                              │    Generate JWT token       │
+     │                              │                             │
+     │ 5. Return token              │                             │
+     │◄─────────────────────────────┤                             │
+     │    {token: "eyJ...", user}   │                             │
+     │                              │                             │
+     │ 6. Store token in localStorage                             │
+     │                                                             │
+     │ 7. Future requests include:                                │
+     │    Authorization: Bearer TOKEN                             │
+     └─────────────────────────────────────────────────────────────┘
+
+## File Structure
+
+c:\DBMS Project isFinal\
+│
+├── Backend\
+│   ├── server.js                 ← Main entry point, imports cron ✨
+│   ├── db.js                     ← PostgreSQL connection
+│   ├── cron.js ✨                ← Automatic archival job (NEW)
+│   ├── package.json              ← Dependencies (added node-cron) ✨
+│   │
+│   ├── routes\
+│   │   ├── events.js ✨          ← GET/POST/PUT/DELETE events (MODIFIED)
+│   │   ├── booking.js ✨         ← POST bookings with validation (MODIFIED)
+│   │   └── auth.js               ← Register/Login
+│   │
+│   ├── middleware\
+│   │   └── auth.js               ← JWT verification
+│   │
+│   ├── migrations\ ✨            ← Database migrations (NEW)
+│   │   ├── 001_add_price_and_archival.sql
+│   │   └── one_time_archive.sql
+│   │
+│   └── events.sql                ← Original schema
+│
+├── Frontend\
+│   ├── index.html                ← Homepage
+│   ├── main.js ✨                ← Event display logic (MODIFIED)
+│   ├── style.css ✨              ← Styles + price badge (MODIFIED)
+│   ├── participant.html          ← Participant dashboard
+│   ├── participant.js            ← Participant logic
+│   ├── organizer.html            ← Organizer dashboard
+│   └── organizer.js              ← Organizer logic
+│
+└── Documentation\ ✨             ← All documentation (NEW)
+    ├── FEATURES_SUMMARY.md       ← Complete overview
+    ├── IMPLEMENTATION_CHECKLIST.md ← Step-by-step guide
+    ├── TESTING_GUIDE.md          ← Test scenarios
+    ├── API_DOCUMENTATION.md      ← API reference
+    ├── QUICK_REFERENCE.md        ← Quick commands
+    └── ARCHITECTURE_DIAGRAM.txt  ← This file
+
+## Technology Stack
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         TECHNOLOGY LAYERS                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ FRONTEND LAYER                                                  │   │
+│  │ • HTML5 - Structure                                             │   │
+│  │ • CSS3 - Styling (Gradients, Flexbox, Grid)                    │   │
+│  │ • JavaScript ES6+ - Logic (Fetch API, Async/Await)             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                ▲                                        │
+│                                │ HTTP/REST                              │
+│                                ▼                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ BACKEND LAYER                                                   │   │
+│  │ • Node.js v18+ - Runtime                                        │   │
+│  │ • Express.js - Web framework                                    │   │
+│  │ • node-cron ✨ - Scheduled tasks (NEW)                          │   │
+│  │ • jsonwebtoken - Authentication                                 │   │
+│  │ • bcryptjs - Password hashing                                   │   │
+│  │ • cors - Cross-origin requests                                  │   │
+│  │ • pg - PostgreSQL client                                        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                ▲                                        │
+│                                │ SQL                                    │
+│                                ▼                                        │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ DATABASE LAYER                                                  │   │
+│  │ • PostgreSQL 14+ - Relational database                          │   │
+│  │ • NUMERIC(10,2) ✨ - Price storage (NEW)                        │   │
+│  │ • BOOLEAN ✨ - Active status (NEW)                              │   │
+│  │ • TIMESTAMP ✨ - Archive tracking (NEW)                         │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+## Security Architecture
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         SECURITY LAYERS                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ AUTHENTICATION                                                  │   │
+│  │ • JWT tokens (24h expiration)                                   │   │
+│  │ • bcrypt password hashing (10 rounds)                           │   │
+│  │ • Role-based access control (Organizer/Participant)             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ AUTHORIZATION                                                   │   │
+│  │ • verifyToken middleware                                        │   │
+│  │ • verifyRole middleware                                         │   │
+│  │ • User can only view own bookings                               │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ DATA VALIDATION                                                 │   │
+│  │ • Parameterized SQL queries (SQL injection prevention)          │   │
+│  │ • Input validation (required fields, data types)                │   │
+│  │ • Business logic validation ✨ (active events, future dates)    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+## Deployment Architecture (Production)
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         PRODUCTION SETUP                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ WEB SERVER (Nginx/Apache)                                       │   │
+│  │ • Serve static files (Frontend)                                 │   │
+│  │ • Reverse proxy to Node.js                                      │   │
+│  │ • SSL/TLS termination                                           │   │
+│  └────────────────────────┬────────────────────────────────────────┘   │
+│                           │                                            │
+│                           ▼                                            │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ APPLICATION SERVER (Node.js + PM2)                              │   │
+│  │ • Express.js API                                                │   │
+│  │ • Cron jobs ✨                                                  │   │
+│  │ • Process management (PM2)                                      │   │
+│  │ • Auto-restart on crash                                         │   │
+│  └────────────────────────┬────────────────────────────────────────┘   │
+│                           │                                            │
+│                           ▼                                            │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ DATABASE SERVER (PostgreSQL)                                    │   │
+│  │ • Data persistence                                              │   │
+│  │ • Automated backups                                             │   │
+│  │ • Connection pooling                                            │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+## Key Improvements Summary
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         BEFORE vs AFTER                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  FEATURE 1: EVENT PRICING                                              │
+│  ┌──────────────────────────┬──────────────────────────────────────┐   │
+│  │ BEFORE                   │ AFTER ✨                             │   │
+│  ├──────────────────────────┼──────────────────────────────────────┤   │
+│  │ No price information     │ Price displayed on cards & modals    │   │
+│  │ No price in database     │ NUMERIC(10,2) column added           │   │
+│  │ No price in API          │ Price in GET/POST/PUT responses      │   │
+│  └──────────────────────────┴──────────────────────────────────────┘   │
+│                                                                         │
+│  FEATURE 2: DATE SORTING                                               │
+│  ┌──────────────────────────┬──────────────────────────────────────┐   │
+│  │ BEFORE                   │ AFTER ✨                             │   │
+│  ├──────────────────────────┼──────────────────────────────────────┤   │
+│  │ Random order             │ Always sorted by date ASC            │   │
+│  │ No ORDER BY clause       │ SQL: ORDER BY date ASC               │   │
+│  │ Inconsistent display     │ Client-side fallback sorting         │   │
+│  └──────────────────────────┴──────────────────────────────────────┘   │
+│                                                                         │
+│  FEATURE 3: PAST EVENT HANDLING                                        │
+│  ┌──────────────────────────┬──────────────────────────────────────┐   │
+│  │ BEFORE                   │ AFTER ✨                             │   │
+│  ├──────────────────────────┼──────────────────────────────────────┤   │
+│  │ Past events visible      │ Past events auto-hidden              │   │
+│  │ Could book past events   │ Booking validation prevents this     │   │
+│  │ No archival mechanism    │ Daily cron job at 00:05              │   │
+│  │ No audit trail           │ archived_at timestamp tracking       │   │
+│  └──────────────────────────┴──────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+## Legend
+
+✨ = New feature or modification
+PK = Primary Key
+FK = Foreign Key
+JWT = JSON Web Token
+API = Application Programming Interface
+SQL = Structured Query Language
+HTTP = Hypertext Transfer Protocol
+REST = Representational State Transfer
+CRUD = Create, Read, Update, Delete
+
+---
+
+For detailed implementation steps, see: IMPLEMENTATION_CHECKLIST.md
+For testing procedures, see: TESTING_GUIDE.md
+For API details, see: API_DOCUMENTATION.md
+For quick commands, see: QUICK_REFERENCE.md
