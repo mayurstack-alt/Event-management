@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Participant Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Minimal styles for cards and modal */
+    .card, .ticket-card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 10px 0;
+      background: #fafafa;
+    }
+    .ticket-card {
+      border-style: dashed;
+      background: #fff9e6;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal {
+      width: 320px;
+      background: #fff;
+      padding: 18px;
+      border-radius: 8px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .modal h3 { margin: 0 0 8px; }
+    .modal .controls { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+    .btn { padding: 8px 12px; border-radius:6px; cursor:pointer; border: none; }
+    .btn-primary { background:#2b6cb0; color:white; }
+    .btn-ghost { background:#f0f0f0; }
+    input[type="number"] { width:100%; padding:8px; box-sizing:border-box; border-radius:6px; border:1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Participant Dashboard</h1>
+    <div>
+      <span id="userInfo"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Available Events</h2>
+      <div id="eventsContainer"></div>
+    </section>
+
+    <section>
+      <h2>My Bookings</h2>
+      <div id="bookingsContainer"></div>
+    </section>
+
+    <section>
+      <h2>My Tickets</h2>
+      <div id="myTicketsContainer"></div>
+    </section>
+  </main>
+
+  <!-- Modal for booking number input -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Book Tickets</h3>
+      <p id="modalEventTitle" style="margin:6px 0 12px; font-weight:600;"></p>
+      <label>
+        Number of tickets:
+        <input id="ticketCountInput" type="number" min="1" value="1" />
+      </label>
+      <div class="controls">
+        <button id="modalCancel" class="btn btn-ghost">Cancel</button>
+        <button id="modalConfirm" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="participant.js"></script>
+</body>
+</html>
+   
